@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Hidroponik IoT</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Dashboard Sistem Hidroponik</h1>
+
+        <!-- Data Sensor -->
+        <div class="sensor-data">
+            <h3>Data Sensor</h3>
+            <p><strong>Suhu:</strong> <span id="temperature">0</span>°C</p>
+            <p><strong>Kelembapan:</strong> <span id="humidity">0</span>%</p>
+            <p><strong>pH:</strong> <span id="ph">0</span></p>
+            <p><strong>Kekeruhan:</strong> <span id="turbidity">0</span></p>
+        </div>
+
+        <!-- Kontrol Pompa -->
+        <div class="pump-control">
+            <h3>Status Pompa</h3>
+            <button id="togglePump">Nyalakan Pompa</button>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/mqtt/dist/mqtt.min.js"></script>
+    <script>
+        // MQTT setup
+        const client = mqtt.connect('ws://broker.hivemq.com:8000/mqtt'); // Ganti dengan broker Anda
+        const pumpButton = document.getElementById('togglePump');
+        let pumpStatus = false;
+
+        // Saat terhubung ke broker MQTT
+        client.on('connect', () => {
+            console.log('Terhubung ke broker MQTT');
+            // Subscribe ke topik data sensor
+            client.subscribe('hidroponik/sensor_data', (err) => {
+                if (err) {
+                    console.log('Gagal subscribe:', err);
+                }
+            });
+        });
+
+        // Mengupdate data sensor di frontend
+        client.on('message', (topic, message) => {
+            if (topic === 'hidroponik/sensor_data') {
+                const data = JSON.parse(message.toString());
+                document.getElementById('temperature').textContent = data.temperature;
+                document.getElementById('humidity').textContent = data.humidity;
+                document.getElementById('ph').textContent = data.ph;
+                document.getElementById('turbidity').textContent = data.turbidity;
+            }
+        });
+
+        // Mengontrol pompa
+        pumpButton.addEventListener('click', () => {
+            pumpStatus = !pumpStatus;
+            pumpButton.textContent = pumpStatus ? 'Matikan Pompa' : 'Nyalakan Pompa';
+            // Mengirim perintah untuk mengontrol pompa
+            client.publish('hidroponik/pump_control', pumpStatus ? 'ON' : 'OFF');
+        });
+    </script>
+</body>
+</html>
